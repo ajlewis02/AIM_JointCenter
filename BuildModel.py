@@ -17,8 +17,8 @@ if __name__ == '__main__':
     physical_devices = tf.config.list_physical_devices('GPU')
     for device in physical_devices:
         tf.config.experimental.set_memory_growth(device, True)
-    seq_len = 1
-    filename = "simple_knee_seq_hard_len1_simple_norm"
+    seq_len = 2
+    filename = "simple_knee_seq_hard_len2_simple_norm"
 
     train_ds = pd.read_csv(filename+".csv")
     val_ds = pd.read_csv(filename+"-val.csv")
@@ -26,10 +26,12 @@ if __name__ == '__main__':
     train_ds_labels = pd.read_csv(filename+"-labs.csv")
     val_ds_labels = pd.read_csv(filename+"-val-labs.csv")
 
-    model_name = "TEST2"
+    model_name = "min_simple_len2_gen3"
 
     model = tf.keras.models.Sequential([
         tf.keras.layers.Dense(12 * seq_len, activation="tanh"),
+        tf.keras.layers.Dense(24, activation="tanh"),
+        tf.keras.layers.Dense(24, activation="tanh"),
         tf.keras.layers.Dense(3)
     ], model_name)
 

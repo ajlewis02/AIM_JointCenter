@@ -189,7 +189,7 @@ def simple_seq_knee_hard_simple_norm(seq_len, filename, val=False):
         flab = open(filename+"-labs.csv", "w")
 
     for source in datused:
-        for i in range(0, len(source.get_marker("knee")) - seq_len, seq_len):
+        for i in range(0, len(source.get_marker("knee")) - seq_len, 1):
             data = []
             label = []
             xnoise = random.randint(-100, 100)  # Random noise, so that the labels aren't always in the same spots
@@ -216,9 +216,8 @@ def simple_seq_knee_hard_simple_norm(seq_len, filename, val=False):
                 tstepdat = [j/dist for j in tstepdat]  # Scale data so that nearest point to joint center is 1 dist away
                 label = [j/dist for j in label]  # Scale label down too
 
-                data.append(tstepdat)
-            for timestep in data:
-                f.write(",".join([str(n) for n in timestep])+"\n")
+                data = data + tstepdat
+            f.write(",".join([str(n) for n in data])+"\n")
             flab.write(",".join([str(n) for n in label])+"\n")
     f.close()
     flab.close()
@@ -231,9 +230,9 @@ exo_sources = ["C:/users/alekj/ideaprojects/AIM_Vicon/Vicon/Examples/ExampleData
 exo_val = ["C:/users/alekj/ideaprojects/AIM_Vicon/Vicon/Examples/ExampleData/knee_center Cal 04.csv"]
 
 setup_exo_hard(exo_sources, exo_val)
-simple_seq_knee_hard_no_norm(1, "simple_knee_seq_hard_len1_no_norm")
-simple_seq_knee_hard_no_norm(1, "simple_knee_seq_hard_len1_no_norm", True)
-simple_seq_knee_hard(1, "simple_knee_seq_hard_len1")
-simple_seq_knee_hard(1, "simple_knee_seq_hard_len1", True)
-simple_seq_knee_hard_simple_norm(1, "simple_knee_seq_hard_len1_simple_norm")
-simple_seq_knee_hard_simple_norm(1, "simple_knee_seq_hard_len1_simple_norm", True)
+# simple_seq_knee_hard_no_norm(2, "simple_knee_seq_hard_len1_no_norm")
+# simple_seq_knee_hard_no_norm(1, "simple_knee_seq_hard_len1_no_norm", True)
+# simple_seq_knee_hard(1, "simple_knee_seq_hard_len1")
+# simple_seq_knee_hard(1, "simple_knee_seq_hard_len1", True)
+simple_seq_knee_hard_simple_norm(2, "simple_knee_seq_hard_len2_simple_norm")
+simple_seq_knee_hard_simple_norm(2, "simple_knee_seq_hard_len2_simple_norm", True)

@@ -1,0 +1,17 @@
+min_simple_len2:
+Minimum model, mostly exists to test training a model with sequences of data.
+Takes simple_normed data (data and label are scaled down w.r.t. the origin such that distance from the origin to the label is 1 unit)
+Structure:
+24 tanh (input) -> 3 linear (output)
+Trained for 100 epochs
+min_simple_len2_gen2:
+Somewhat larger model
+Takes simple_normed data
+Structure:
+24 tanh (input) -> 12 tanh -> 3 linear (output)
+Trained for 100 epochs
+min_simple_len2_gen3:
+Yet Again Larger
+Takes simple_normed data
+Structure:
+24 tanh (input) -> 24 tanh -> 24 tanh -> 3 linear (output)
