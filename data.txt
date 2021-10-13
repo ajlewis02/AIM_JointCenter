@@ -1,0 +1,8 @@
+simple_normed:
+(4 * 3 * seq_len) input dimensions
+3 output dimensions
+Data and label in upper body's reference frame -> gaussian noise of (0, 65) added to entire sequence -> scaled down so that distance from label to nearest data point is 1
+no_normed:
+Same as simple_normed, but data is not scaled down at all
+flat_normed:
+no_normed, but scaled down by factor of 500 to ensure all data is in or near (-1, 1) range

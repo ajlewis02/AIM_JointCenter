@@ -47,6 +47,33 @@ def normed_loss():
     fdist.close()
 
 
+def simple_loss():
+    f = open(filename+".csv")
+
+    losses = []
+    dists = []
+    seq_len = 5
+    for line in f:
+        lineparsed = line.split("\n")[0].split(",")
+        label = list(map(float, lineparsed[seq_len*12:(seq_len*12)+3]))
+        dat = list(map(float, lineparsed[:seq_len*12]))
+        dist = float(lineparsed[(seq_len*12)+3])
+        guess = model.predict([dat])
+        losses.append(BuildModel.pythag_loss(np.array([label]), np.array(guess)).numpy()[0])
+        dists.append(dist)
+    f.close()
+    print(sum(losses)/len(losses))
+    print(max(losses))
+    print(min(losses))
+    print(len(losses))
+    print()
+    distlosses = [losses[n]/dists[n] for n in range(len(losses))]
+    print(sum(distlosses)/len(distlosses))
+    print(max(distlosses))
+    print(min(distlosses))
+    print(len(distlosses))
+
+
 def plot_timestep(timestep=-1):
     f = open(filename+".csv")
     flab = open(filename+"-labs.csv")
@@ -79,12 +106,12 @@ if __name__ == '__main__':
     physical_devices = tf.config.list_physical_devices('GPU')
     for device in physical_devices:
         tf.config.experimental.set_memory_growth(device, True)
-    model_name = "TEST"
-    filename = "simple_knee_seq_hard_len1"
+    model_name = "flat_len5_gen2"
+    filename = "simple_knee_seq_hard_len5_flat_norm-test"
 
-    custom_objects = {"pythag_loss":BuildModel.pythag_loss}
+    custom_objects = {"pythag_loss_no_norm":BuildModel.pythag_loss_no_norm}
 
     with tf.keras.utils.custom_object_scope(custom_objects):
         model = tf.keras.models.load_model(model_name)
 
-    plot_timestep()
+    simple_loss()

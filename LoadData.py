@@ -1,21 +1,21 @@
-import numpy, random, math
+import numpy as np, math
 from GaitCore import Core
 import pandas as pd
 import matplotlib.pyplot as plt
 from Vicon.Mocap.Vicon import Vicon
 from Vicon.Markers import Markers
-import random
+import random, os
 
 #  TODO: verify exoskeleton frames
 exoFrames = {"back": [Core.Point.Point(0, 14, 0),
                       Core.Point.Point(56, 0, 0),
                       Core.Point.Point(14, 63, 0),
                       Core.Point.Point(56, 63, 0)],
-             "shank": [Core.Point.Point(0, 0, 0),
+             "Shank": [Core.Point.Point(0, 0, 0),
                        Core.Point.Point(0, 63, 0),
                        Core.Point.Point(70, 14, 0),
                        Core.Point.Point(35, 49, 0)],
-             "thigh": [Core.Point.Point(0, 0, 0),
+             "Thigh": [Core.Point.Point(0, 0, 0),
                        Core.Point.Point(70, 0, 0),
                        Core.Point.Point(0, 42, 0),
                        Core.Point.Point(70, 56, 0)]}
@@ -77,7 +77,7 @@ def child_by_parent(source, timestep, parent, child):
 def hard_exo_joint_by_parent(source, timestep, parent):
     """Returns the location of the "knee" marker relative to the parent rigid body. Output is in format [x, y, z]"""
     parent_frame = source.get_frame(parent)[timestep]
-    jc = source.get_marker("knee")[timestep]
+    jc = source.get_marker("knee_top")[timestep]
     jc_rel = Markers.global_point_to_frame(parent_frame, jc)
     return flatten_point(jc_rel)
 
@@ -113,9 +113,9 @@ def simple_seq_knee_hard(seq_len, filename, val=False):
             label = []
             for n in range(seq_len):
                 tstep = i + n
-                tstepdat = child_by_parent(source, tstep, "thigh", "shank")  # Raw positional data
+                tstepdat = child_by_parent(source, tstep, "Thigh", "Shank")  # Raw positional data
 
-                label = hard_exo_joint_by_parent(source, tstep, "thigh")
+                label = hard_exo_joint_by_parent(source, tstep, "Thigh")
                 dist = shortest_pythag(tstepdat, label)
 
                 for point in range(0, len(tstepdat)-2, 3):  # Transform data so that joint center would be at origin
@@ -138,68 +138,34 @@ def simple_seq_knee_hard(seq_len, filename, val=False):
     flab.close()
 
 
-def simple_seq_knee_hard_no_norm(seq_len, filename, val=False):
-    """Generator which returns a sequence of seq_len of sequential timesteps. Data is in format [child_by_parent(
-    source, 1), child_by_parent(source, 2), ...], hard_exo_joint_by_parent()"""
-    if val:
-        datused = markersVal
-        f = open(filename+"-val.csv", "w")
-        f1 = open(filename+"-val-dists.csv", "w")
-        flab = open(filename+"-val-labs.csv", "w")
-    else:
-        datused = markers
-        f = open(filename+".csv", "w")
-        f1 = open(filename+"-dists.csv", "w")
-        flab = open(filename+"-labs.csv", "w")
-
-    for source in datused:
-        for i in range(0, len(source.get_marker("knee")) - seq_len, seq_len):
-            data = []
-            dists = []
-            label = []
-            for n in range(seq_len):
-                tstep = i + n
-                tstepdat = child_by_parent(source, tstep, "thigh", "shank")  # Raw positional data
-
-                label = hard_exo_joint_by_parent(source, tstep, "thigh")
-                dist = shortest_pythag(tstepdat, label)
-
-                data.append(tstepdat)
-                dists.append(dist)
-            for timestep in data:
-                f.write(",".join([str(n) for n in timestep])+"\n")
-            flab.write(",".join([str(n) for n in label])+"\n")
-            for dist in dists:
-                f1.write(str(dist)+"\n")
-    f.close()
-    f1.close()
-    flab.close()
-
-
 def simple_seq_knee_hard_simple_norm(seq_len, filename, val=False):
     """Generator which returns a sequence of seq_len of sequential timesteps. Data is in format [child_by_parent(
     source, 1), child_by_parent(source, 2), ...], hard_exo_joint_by_parent()"""
     if val:
-        datused = markersVal
+        datused = exo_val
         f = open(filename+"-val.csv", "w")
         flab = open(filename+"-val-labs.csv", "w")
     else:
-        datused = markers
+        datused = exo_sources
         f = open(filename+".csv", "w")
         flab = open(filename+"-labs.csv", "w")
 
-    for source in datused:
-        for i in range(0, len(source.get_marker("knee")) - seq_len, 1):
+    for ss in datused:
+        v = Vicon(ss)
+        source = v.get_markers()
+        source.smart_sort()
+        source.auto_make_transform(exoFrames)
+        for i in range(0, len(source.get_marker("knee_top")) - seq_len, 1):
             data = []
             label = []
-            xnoise = random.randint(-100, 100)  # Random noise, so that the labels aren't always in the same spots
-            ynoise = random.randint(-100, 100)
-            znoise = random.randint(-100, 100)
+            xnoise = np.random.normal(0, 65)
+            ynoise = np.random.normal(0, 65)
+            znoise = np.random.normal(0, 65)
             for n in range(seq_len):
                 tstep = i + n
-                tstepdat = child_by_parent(source, tstep, "thigh", "shank")  # Raw positional data
+                tstepdat = child_by_parent(source, tstep, "Thigh", "Shank")  # Raw positional data
 
-                label = hard_exo_joint_by_parent(source, tstep, "thigh")
+                label = hard_exo_joint_by_parent(source, tstep, "Thigh")
                 dist = shortest_pythag(tstepdat, label)
 
                 for j in range(0, len(tstepdat), 3):
@@ -223,16 +189,105 @@ def simple_seq_knee_hard_simple_norm(seq_len, filename, val=False):
     flab.close()
 
 
-exo_sources = ["C:/users/alekj/ideaprojects/AIM_Vicon/Vicon/Examples/ExampleData/knee_center Cal 01.csv",
-               "C:/users/alekj/ideaprojects/AIM_Vicon/Vicon/Examples/ExampleData/knee_center Cal 02.csv",
-               "C:/users/alekj/ideaprojects/AIM_Vicon/Vicon/Examples/ExampleData/knee_center Cal 03.csv"]
+def simple_seq_knee_hard_no_norm(seq_len, filename, val=False):
+    """Generator which returns a sequence of seq_len of sequential timesteps. Data is in format [child_by_parent(
+    source, 1), child_by_parent(source, 2), ...], [hard_exo_joint_by_parent(), shortest_pythag]"""
+    if val:
+        datused = exo_val
+        f = open(filename+"-val.csv", "w")
+        flab = open(filename+"-val-labs.csv", "w")
+    else:
+        datused = exo_sources
+        f = open(filename+".csv", "w")
+        flab = open(filename+"-labs.csv", "w")
 
-exo_val = ["C:/users/alekj/ideaprojects/AIM_Vicon/Vicon/Examples/ExampleData/knee_center Cal 04.csv"]
+    for ss in datused:
+        v = Vicon(ss)
+        source = v.get_markers()
+        source.smart_sort()
+        source.auto_make_transform(exoFrames)
+        for i in range(0, len(source.get_marker("knee_top")) - seq_len, 1):
+            data = []
+            label = []
+            dist = 1
+            xnoise = np.random.normal(0, 65)
+            ynoise = np.random.normal(0, 65)
+            znoise = np.random.normal(0, 65)
+            for n in range(seq_len):
+                tstep = i + n
+                tstepdat = child_by_parent(source, tstep, "Thigh", "Shank")  # Raw positional data
 
-setup_exo_hard(exo_sources, exo_val)
-# simple_seq_knee_hard_no_norm(2, "simple_knee_seq_hard_len1_no_norm")
-# simple_seq_knee_hard_no_norm(1, "simple_knee_seq_hard_len1_no_norm", True)
-# simple_seq_knee_hard(1, "simple_knee_seq_hard_len1")
-# simple_seq_knee_hard(1, "simple_knee_seq_hard_len1", True)
-simple_seq_knee_hard_simple_norm(2, "simple_knee_seq_hard_len2_simple_norm")
-simple_seq_knee_hard_simple_norm(2, "simple_knee_seq_hard_len2_simple_norm", True)
+                label = hard_exo_joint_by_parent(source, tstep, "Thigh")
+                dist = shortest_pythag(tstepdat, label)
+
+                for j in range(0, len(tstepdat), 3):
+                    tstepdat[j] += xnoise
+                for j in range(1, len(tstepdat), 3):
+                    tstepdat[j] += ynoise
+                for j in range(2, len(tstepdat), 3):
+                    tstepdat[j] += znoise
+
+                label[0] += xnoise
+                label[1] += ynoise
+                label[2] += znoise
+
+                data = data + tstepdat
+            f.write(",".join([str(n) for n in data])+"\n")
+            flab.write(",".join([str(n) for n in label])+","+str(dist)+"\n")
+    f.close()
+    flab.close()
+
+
+def simple_seq_knee_hard_flat_norm(seq_len, filename, datused):
+    """Generator which returns a sequence of seq_len of sequential timesteps. Data is in format [child_by_parent(
+    source, 1), child_by_parent(source, 2), ...], [hard_exo_joint_by_parent(), shortest_pythag]"""
+    f = open(filename, "w")
+    for ss in datused:
+        v = Vicon(ss)
+        source = v.get_markers()
+        source.smart_sort()
+        source.auto_make_transform(exoFrames)
+        for i in range(0, len(source.get_marker("knee_top")) - seq_len, 1):
+            data = []
+            label = []
+            dist = 1
+            xnoise = np.random.normal(0, 65)
+            ynoise = np.random.normal(0, 65)
+            znoise = np.random.normal(0, 65)
+            for n in range(seq_len):
+                tstep = i + n
+                tstepdat = child_by_parent(source, tstep, "Thigh", "Shank")  # Raw positional data
+
+                label = hard_exo_joint_by_parent(source, tstep, "Thigh")
+                dist = shortest_pythag(tstepdat, label)
+
+                for j in range(0, len(tstepdat), 3):
+                    tstepdat[j] += xnoise
+                for j in range(1, len(tstepdat), 3):
+                    tstepdat[j] += ynoise
+                for j in range(2, len(tstepdat), 3):
+                    tstepdat[j] += znoise
+
+                label[0] += xnoise
+                label[1] += ynoise
+                label[2] += znoise
+
+                tstepdat = [j/500 for j in tstepdat]  # Scale data down
+                label = [j/500 for j in label]  # Scale label down too
+                dist /= 500
+
+                data = data + tstepdat
+            f.write(",".join([str(n) for n in data])+","+",".join([str(n) for n in label])+","+str(dist)+"\n")
+    f.close()
+
+
+exo_sources = ["./Sources/" + n for n in os.listdir("./Sources")]
+
+exo_val = ["./ValSources/" + n for n in os.listdir("./ValSources")]
+
+exo_test = ["./TestSources/" + n for n in os.listdir("./TestSources")]
+
+
+# simple_seq_knee_hard_flat_norm(5, "simple_knee_seq_hard_len5_flat_norm.csv", exo_sources)
+# simple_seq_knee_hard_flat_norm(5, "simple_knee_seq_hard_len5_flat_norm-val.csv", exo_val)
+simple_seq_knee_hard_flat_norm(5, "simple_knee_seq_hard_len5_flat_norm-test.csv", exo_test)

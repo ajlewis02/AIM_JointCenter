@@ -4,14 +4,60 @@ Takes simple_normed data (data and label are scaled down w.r.t. the origin such 
 Structure:
 24 tanh (input) -> 3 linear (output)
 Trained for 100 epochs
+loss: pythag_loss
 min_simple_len2_gen2:
 Somewhat larger model
 Takes simple_normed data
 Structure:
 24 tanh (input) -> 12 tanh -> 3 linear (output)
 Trained for 100 epochs
+loss: pythag_loss
 min_simple_len2_gen3:
 Yet Again Larger
 Takes simple_normed data
 Structure:
 24 tanh (input) -> 24 tanh -> 24 tanh -> 3 linear (output)
+100 epochs
+loss: pythag_loss
+min_simple_len2_gen4:
+Min size, to minimize overfitting
+Takes simple_normed data
+Structure:
+24 tanh (input) -> 3 linear (output)
+100 epochs
+loss: pythag_loss
+min_simple_len2_gen5:
+takes no_norm data
+Structure: 24 tanh (input) -> 24 tanh -> 3 linear (output)
+100 epochs
+loss: pythag_loss_no_norm
+min_simple_len2_gen6:
+takes flat_norm data
+Structure: 24 tanh (input) -> 24 tanh -> 3 tanh (output)
+100 epochs
+loss: pythag_loss_no_norm
+min_flat_len2_gen1:
+takes flat_norm data
+Structure: 24 tanh (input) -> 24 tanh -> 24 tanh -> 3 tanh (output)
+100 epochs
+loss: pythag_loss_no_norm
+min_flat_len3_gen2:
+takes flat_norm data
+Structure: 36 tanh (input) -> 36 tanh -> 36 tanh -> 3 tanh (output)
+100 epochs
+loss: pythag_loss_no_norm
+min_flat_len3_gen3:
+takes flat_norm data
+Structure: 36 tanh (input) -> 36 tanh -> 36 tanh -> 36 tanh -> 3 tanh (output)
+100 epochs
+loss: pythag_loss_no_norm
+min_flat_len3_gen4:
+takes flat_norm data
+Structure: 36 tanh (input) -> 4x 36 tanh -> 3 tanh (output)
+100 epochs
+loss: pythag_loss_no_norm
+flat_len5_gen1:
+takes flat_norm data
+Structure: 60 tanh (input) -> 2x 60 tanh -> 3 tanh (output)
+100 epochs
+loss_pythag_loss_no_norm
