@@ -67,7 +67,7 @@ def child_by_parent(source, timestep, parent, child):
     using the specified markers object. Output is in format [x1, y1, z1, ... x4, y4, z4]"""
     parent_frame = source.get_frame(parent)[timestep]
     child_dat = source.get_rigid_body(child)
-    child_points = [Markers.global_point_to_frame(parent_frame, child_dat[n][0]) for n in range(4)]
+    child_points = [Markers.global_point_to_frame(parent_frame, child_dat[n][timestep]) for n in range(4)]
     out = []
     for point in child_points:
         out += flatten_point(point)
@@ -281,13 +281,15 @@ def simple_seq_knee_hard_flat_norm(seq_len, filename, datused):
     f.close()
 
 
-exo_sources = ["./Sources/" + n for n in os.listdir("./Sources")]
+if __name__ == "__main__":
 
-exo_val = ["./ValSources/" + n for n in os.listdir("./ValSources")]
+    exo_sources = ["./Sources/" + n for n in os.listdir("./Sources")]
 
-exo_test = ["./TestSources/" + n for n in os.listdir("./TestSources")]
+    exo_val = ["./ValSources/" + n for n in os.listdir("./ValSources")]
+
+    exo_test = ["./TestSources/" + n for n in os.listdir("./TestSources")]
 
 
-# simple_seq_knee_hard_flat_norm(5, "simple_knee_seq_hard_len5_flat_norm.csv", exo_sources)
-# simple_seq_knee_hard_flat_norm(5, "simple_knee_seq_hard_len5_flat_norm-val.csv", exo_val)
-simple_seq_knee_hard_flat_norm(5, "simple_knee_seq_hard_len5_flat_norm-test.csv", exo_test)
+    simple_seq_knee_hard_flat_norm(5, "simple_knee_seq_hard_len5_flat_norm.csv", exo_sources)
+    simple_seq_knee_hard_flat_norm(5, "simple_knee_seq_hard_len5_flat_norm-val.csv", exo_val)
+    simple_seq_knee_hard_flat_norm(5, "simple_knee_seq_hard_len5_flat_norm-test.csv", exo_test)
