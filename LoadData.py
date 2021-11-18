@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from Vicon.Mocap.Vicon import Vicon
 from Vicon.Markers import Markers
 import random, os
+from scipy.spatial.transform import Rotation as R
 
 #  TODO: verify exoskeleton frames
 exoFrames = {"back": [Core.Point.Point(0, 14, 0),
@@ -238,46 +239,90 @@ def simple_seq_knee_hard_no_norm(seq_len, filename, val=False):
     flab.close()
 
 
-def simple_seq_knee_hard_flat_norm(seq_len, filename, datused):
+def simple_seq_knee_hard_flat_norm(seq_len, filename, datused, addl_noise=False, repeat=1):
     """Generator which returns a sequence of seq_len of sequential timesteps. Data is in format [child_by_parent(
-    source, 1), child_by_parent(source, 2), ...], [hard_exo_joint_by_parent(), shortest_pythag]"""
+    source, 1), child_by_parent(source, 2), ...], [hard_exo_joint_by_parent(), shortest_pythag]
+    If addl_noise = True, the data will also be randomly scaled and rotated about the joint center"""
     f = open(filename, "w")
-    for ss in datused:
-        v = Vicon(ss)
-        source = v.get_markers()
-        source.smart_sort()
-        source.auto_make_transform(exoFrames)
-        for i in range(0, len(source.get_marker("knee_top")) - seq_len, 1):
-            data = []
-            label = []
-            dist = 1
-            xnoise = np.random.normal(0, 65)
-            ynoise = np.random.normal(0, 65)
-            znoise = np.random.normal(0, 65)
-            for n in range(seq_len):
-                tstep = i + n
-                tstepdat = child_by_parent(source, tstep, "Thigh", "Shank")  # Raw positional data
+    for r in range(repeat):
+        for ss in datused:
+            v = Vicon(ss)
+            source = v.get_markers()
+            source.smart_sort()
+            source.auto_make_transform(exoFrames)
+            for i in range(0, len(source.get_marker("knee_top")) - seq_len, 1):
+                data = []
+                label = []
+                dist = 1
+                xnoise = np.random.normal(0, 65)
+                ynoise = np.random.normal(0, 65)
+                znoise = np.random.normal(0, 65)
+                scale_noise = np.random.uniform(0.5, 1.5)
+                rot_x = np.random.normal(0, math.pi/2)
+                rot_y = np.random.normal(0, math.pi/2)
+                rot_z = np.random.normal(0, math.pi/2)
+                for n in range(seq_len):
+                    tstep = i + n
+                    tstepdat = child_by_parent(source, tstep, "Thigh", "Shank")  # Raw positional data
 
-                label = hard_exo_joint_by_parent(source, tstep, "Thigh")
-                dist = shortest_pythag(tstepdat, label)
+                    label = hard_exo_joint_by_parent(source, tstep, "Thigh")
+                    dist = shortest_pythag(tstepdat, label)
 
-                for j in range(0, len(tstepdat), 3):
-                    tstepdat[j] += xnoise
-                for j in range(1, len(tstepdat), 3):
-                    tstepdat[j] += ynoise
-                for j in range(2, len(tstepdat), 3):
-                    tstepdat[j] += znoise
+                    for j in range(0, len(tstepdat), 3):
+                        tstepdat[j] += xnoise
+                    for j in range(1, len(tstepdat), 3):
+                        tstepdat[j] += ynoise
+                    for j in range(2, len(tstepdat), 3):
+                        tstepdat[j] += znoise
 
-                label[0] += xnoise
-                label[1] += ynoise
-                label[2] += znoise
+                    label[0] += xnoise
+                    label[1] += ynoise
+                    label[2] += znoise
 
-                tstepdat = [j/500 for j in tstepdat]  # Scale data down
-                label = [j/500 for j in label]  # Scale label down too
-                dist /= 500
+                    tstepdat = [j/500 for j in tstepdat]  # Scale data down
+                    label = [j/500 for j in label]  # Scale label down too
+                    dist /= 500
 
-                data = data + tstepdat
-            f.write(",".join([str(n) for n in data])+","+",".join([str(n) for n in label])+","+str(dist)+"\n")
+                    if addl_noise:
+                        # Find the centroid
+                        dat_x = [tstepdat[m] for m in range(0, len(tstepdat), 3)]
+                        dat_y = [tstepdat[m] for m in range(1, len(tstepdat), 3)]
+                        dat_z = [tstepdat[m] for m in range(2, len(tstepdat), 3)]
+
+                        centroid = [sum(dat_x)/len(dat_x), sum(dat_y)/len(dat_y), sum(dat_z)/len(dat_z)]
+
+                        # Translate data so that centroid is at origin
+                        for j in range(3):
+                            for m in range(j, len(tstepdat), 3):
+                                tstepdat[m] -= centroid[j]
+
+                        # Translate centroid so that label is at origin
+                        centroid = [centroid[m] - label[m] for m in range(len(label))]
+
+                        # Scale centroid (and dist!) about the origin
+                        centroid = [m * scale_noise for m in centroid]
+                        dist *= scale_noise
+
+                        # Rotate centroid about origin
+                        r = R.from_rotvec([rot_x, rot_y, rot_z])
+                        vectors = [[centroid[m], centroid[m+1], centroid[m+2]] for m in range(0, len(centroid)-1, 3)]
+                        rot_vectors = r.apply(vectors)
+                        centroid = []
+                        for j in rot_vectors:
+                            for m in j:
+                                centroid.append(m)
+
+                        # Translate centroid back from origin
+                        centroid = [centroid[m] + label[m] for m in range(len(label))]
+
+                        # Translate data back from origin
+                        for j in range(3):
+                            for m in range(j, len(tstepdat), 3):
+                                tstepdat[m] += centroid[j]
+
+                    data = data + tstepdat
+
+                f.write(",".join([str(n) for n in data])+","+",".join([str(n) for n in label])+","+str(dist)+"\n")
     f.close()
 
 
@@ -289,7 +334,6 @@ if __name__ == "__main__":
 
     exo_test = ["./TestSources/" + n for n in os.listdir("./TestSources")]
 
-
-    simple_seq_knee_hard_flat_norm(5, "simple_knee_seq_hard_len5_flat_norm.csv", exo_sources)
-    simple_seq_knee_hard_flat_norm(5, "simple_knee_seq_hard_len5_flat_norm-val.csv", exo_val)
-    simple_seq_knee_hard_flat_norm(5, "simple_knee_seq_hard_len5_flat_norm-test.csv", exo_test)
+    simple_seq_knee_hard_flat_norm(5, "simple_knee_seq_hard_len5_flat_norm_addl.csv", exo_sources, True)
+    simple_seq_knee_hard_flat_norm(5, "simple_knee_seq_hard_len5_flat_norm_addl-val.csv", exo_val, True)
+    simple_seq_knee_hard_flat_norm(5, "simple_knee_seq_hard_len5_flat_norm_addl-test.csv", exo_test, True)

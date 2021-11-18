@@ -1,3 +1,5 @@
+import os
+
 import tensorflow as tf
 from matplotlib import animation
 
@@ -66,12 +68,11 @@ def normed_loss(filename):
     fdist.close()
 
 
-def simple_loss(filename):
+def simple_loss(filename, seq_len):
     f = open(filename+".csv")
 
     losses = []
     dists = []
-    seq_len = 5
     for line in f:
         lineparsed = line.split("\n")[0].split(",")
         label = list(map(float, lineparsed[seq_len*12:(seq_len*12)+3]))
@@ -91,6 +92,42 @@ def simple_loss(filename):
     # print(max(distlosses))
     # print(min(distlosses))
     # print(len(distlosses))
+    return distlosses
+
+
+def simple_loss_from_raw(filename, seq_len):
+    f = open(filename)
+
+    v = Vicon(filename)
+    source = v.get_markers()
+    source.smart_sort()
+    source.auto_make_transform(exoFrames)
+    pos = []
+    distlosses = []
+    for i in range(0, len(source.get_marker("knee_top")) - seq_len, 1):
+        data = []
+        label = []
+        dist = 1
+        for n in range(seq_len):
+            tstep = i + n
+            tstepdat = LoadData.child_by_parent(source, tstep, "Thigh", "Shank")  # Raw positional data
+
+            label = LoadData.hard_exo_joint_by_parent(source, tstep, "Thigh")
+            dist = LoadData.shortest_pythag(tstepdat, label)
+
+            tstepdat = [j/500 for j in tstepdat]  # Scale data down
+            label = [j/500 for j in label]  # Scale label down too
+            dist /= 500
+
+            data = data + tstepdat
+
+        guess = model.predict([data])[0]
+        guess = [n*500 for n in guess]
+        guess = local_to_global(guess, "Thigh", i+seq_len-1, source)
+        dist *= 500
+        label = LoadData.flatten_point(source.get_marker("knee_top")[i])
+        pos.append(guess)
+        distlosses.append(BuildModel.pythag_loss(np.array([label]), np.array(guess)).numpy()[0]/dist)
     return distlosses
 
 
@@ -238,21 +275,33 @@ if __name__ == '__main__':
     physical_devices = tf.config.list_physical_devices('GPU')
     for device in physical_devices:
         tf.config.experimental.set_memory_growth(device, True)
-    model_name = "flat_len5_gen2"
+    model_name = "flat_len5_addl_norm_gen2"
 
     custom_objects = {"pythag_loss_no_norm":BuildModel.pythag_loss_no_norm}
 
     with tf.keras.utils.custom_object_scope(custom_objects):
         model = tf.keras.models.load_model(model_name)
 
-    val = simple_loss("simple_knee_seq_hard_len5_flat_norm-val")
+    val = simple_loss("simple_knee_seq_hard_len5_flat_norm_addl-val", 5)
     print("Validation")
-    train = simple_loss("simple_knee_seq_hard_len5_flat_norm")
+    train = simple_loss("simple_knee_seq_hard_len5_flat_norm_addl", 5)
     print("Training")
-    test = simple_loss("simple_knee_seq_hard_len5_flat_norm-test")
+    test = simple_loss("simple_knee_seq_hard_len5_flat_norm_addl-test", 5)
+    print("Test1")
+    test2 = simple_loss("simple_knee_seq_hard_len5_flat_norm-test", 5)
 
-    plt.boxplot([val, train, test], labels=["Validation Data", "Training Data", "Testing Data"], showfliers=False)
+    plt.boxplot([val, train, test, test2], labels=["Validation Data", "Training Data", "Testing Data", "Testing Data2"], showfliers=False)
     plt.ylabel("Relative Error")
     plt.show()
 
-    # vis_data(5, "./Sources/bent_long_trial00.csv")
+    # exo_sources = ["./Sources/" + n for n in os.listdir("./Sources")]
+    #
+    # exo_val = ["./ValSources/" + n for n in os.listdir("./ValSources")]
+    #
+    # exo_test = ["./TestSources/" + n for n in os.listdir("./TestSources")]
+    #
+    # exo_all = exo_val+exo_sources+exo_test
+    #
+    # for i in range(len(exo_all)):
+    #     print("Median of " + exo_all[i] + ": " + str(np.median(simple_loss_from_raw(exo_all[i], 5))))
+    # vis_data(5, "./TestSources/bent_neg_yplane01.csv")
