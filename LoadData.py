@@ -239,7 +239,7 @@ def simple_seq_knee_hard_no_norm(seq_len, filename, val=False):
     flab.close()
 
 
-def simple_seq_knee_hard_flat_norm(seq_len, filename, datused, addl_noise=False, repeat=1):
+def simple_seq_knee_hard_flat_norm_centroid(seq_len, filename, datused, addl_noise=False, repeat=1):
     """Generator which returns a sequence of seq_len of sequential timesteps. Data is in format [child_by_parent(
     source, 1), child_by_parent(source, 2), ...], [hard_exo_joint_by_parent(), shortest_pythag]
     If addl_noise = True, the data will also be randomly scaled and rotated about the joint center"""
@@ -283,19 +283,14 @@ def simple_seq_knee_hard_flat_norm(seq_len, filename, datused, addl_noise=False,
                     label = [j/500 for j in label]  # Scale label down too
                     dist /= 500
 
+                    # Find the centroid
+                    dat_x = [tstepdat[m] for m in range(0, len(tstepdat), 3)]
+                    dat_y = [tstepdat[m] for m in range(1, len(tstepdat), 3)]
+                    dat_z = [tstepdat[m] for m in range(2, len(tstepdat), 3)]
+
+                    centroid = [sum(dat_x)/len(dat_x), sum(dat_y)/len(dat_y), sum(dat_z)/len(dat_z)]
+
                     if addl_noise:
-                        # Find the centroid
-                        dat_x = [tstepdat[m] for m in range(0, len(tstepdat), 3)]
-                        dat_y = [tstepdat[m] for m in range(1, len(tstepdat), 3)]
-                        dat_z = [tstepdat[m] for m in range(2, len(tstepdat), 3)]
-
-                        centroid = [sum(dat_x)/len(dat_x), sum(dat_y)/len(dat_y), sum(dat_z)/len(dat_z)]
-
-                        # Translate data so that centroid is at origin
-                        for j in range(3):
-                            for m in range(j, len(tstepdat), 3):
-                                tstepdat[m] -= centroid[j]
-
                         # Translate centroid so that label is at origin
                         centroid = [centroid[m] - label[m] for m in range(len(label))]
 
@@ -315,12 +310,7 @@ def simple_seq_knee_hard_flat_norm(seq_len, filename, datused, addl_noise=False,
                         # Translate centroid back from origin
                         centroid = [centroid[m] + label[m] for m in range(len(label))]
 
-                        # Translate data back from origin
-                        for j in range(3):
-                            for m in range(j, len(tstepdat), 3):
-                                tstepdat[m] += centroid[j]
-
-                    data = data + tstepdat
+                    data = data + centroid
 
                 f.write(",".join([str(n) for n in data])+","+",".join([str(n) for n in label])+","+str(dist)+"\n")
     f.close()
@@ -334,6 +324,6 @@ if __name__ == "__main__":
 
     exo_test = ["./TestSources/" + n for n in os.listdir("./TestSources")]
 
-    simple_seq_knee_hard_flat_norm(5, "simple_knee_seq_hard_len5_flat_norm_addl.csv", exo_sources, True)
-    simple_seq_knee_hard_flat_norm(5, "simple_knee_seq_hard_len5_flat_norm_addl-val.csv", exo_val, True)
-    simple_seq_knee_hard_flat_norm(5, "simple_knee_seq_hard_len5_flat_norm_addl-test.csv", exo_test, True)
+    simple_seq_knee_hard_flat_norm_centroid(5, "simple_knee_seq_hard_len5_flat_norm_centroid_addl.csv", exo_sources, True)
+    simple_seq_knee_hard_flat_norm_centroid(5, "simple_knee_seq_hard_len5_flat_norm_centroid_addl-val.csv", exo_val, True)
+    simple_seq_knee_hard_flat_norm_centroid(5, "simple_knee_seq_hard_len5_flat_norm_centroid_addl-test.csv", exo_test, True)
