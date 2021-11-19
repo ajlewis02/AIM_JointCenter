@@ -22,18 +22,18 @@ if __name__ == '__main__':
     physical_devices = tf.config.list_physical_devices('GPU')
     for device in physical_devices:
         tf.config.experimental.set_memory_growth(device, True)
-    seq_len = 5
-    filename = "simple_knee_seq_hard_len5_flat_norm_centroid_addl"
+    seq_len = 10
+    filename = "simple_knee_seq_hard_len10_flat_norm_centroid"
 
     train_ds_all = pd.read_csv(filename+".csv")
     val_ds_all = pd.read_csv(filename+"-val.csv")
 
     print(train_ds_all.shape)
 
-    train_ds = train_ds_all.iloc[:, :seq_len*12]
-    train_ds_labels = train_ds_all.iloc[:, seq_len*12:]
-    val_ds = val_ds_all.iloc[:, :seq_len*12]
-    val_ds_labels = val_ds_all.iloc[:, seq_len*12:]
+    train_ds = train_ds_all.iloc[:, :seq_len*3]
+    train_ds_labels = train_ds_all.iloc[:, seq_len*3:]
+    val_ds = val_ds_all.iloc[:, :seq_len*3]
+    val_ds_labels = val_ds_all.iloc[:, seq_len*3:]
 
     train_ds_tf = tf.data.Dataset.from_tensor_slices((train_ds, train_ds_labels)).shuffle(1000).batch(100)
     val_ds_tf = tf.data.Dataset.from_tensor_slices((val_ds, val_ds_labels)).shuffle(1000).batch(100)
@@ -41,7 +41,7 @@ if __name__ == '__main__':
     # train_ds_labels = pd.read_csv(filename+"-labs.csv")
     # val_ds_labels = pd.read_csv(filename+"-val-labs.csv")
 
-    model_name = "flat_len5_addl_norm_centroid_gen1"
+    model_name = "flat_len10_norm_centroid_gen1"
 
     model = tf.keras.models.Sequential([
         tf.keras.layers.Dense(3 * seq_len, activation=tf.keras.layers.LeakyReLU(alpha=0.01)),
@@ -65,6 +65,9 @@ if __name__ == '__main__':
     plt.ylabel('Error')
     plt.legend()
     plt.grid(True)
+
+    print(history.history["loss"][len(history.history["loss"])-1])
+    print(history.history['val_loss'][len(history.history['val_loss'])-1])
 
     plt.show()
 

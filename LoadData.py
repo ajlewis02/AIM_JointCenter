@@ -265,30 +265,27 @@ def simple_seq_knee_hard_flat_norm_centroid(seq_len, filename, datused, addl_noi
                     tstep = i + n
                     tstepdat = child_by_parent(source, tstep, "Thigh", "Shank")  # Raw positional data
 
-                    label = hard_exo_joint_by_parent(source, tstep, "Thigh")
-                    dist = shortest_pythag(tstepdat, label)
-
-                    for j in range(0, len(tstepdat), 3):
-                        tstepdat[j] += xnoise
-                    for j in range(1, len(tstepdat), 3):
-                        tstepdat[j] += ynoise
-                    for j in range(2, len(tstepdat), 3):
-                        tstepdat[j] += znoise
-
-                    label[0] += xnoise
-                    label[1] += ynoise
-                    label[2] += znoise
-
-                    tstepdat = [j/500 for j in tstepdat]  # Scale data down
-                    label = [j/500 for j in label]  # Scale label down too
-                    dist /= 500
-
                     # Find the centroid
                     dat_x = [tstepdat[m] for m in range(0, len(tstepdat), 3)]
                     dat_y = [tstepdat[m] for m in range(1, len(tstepdat), 3)]
                     dat_z = [tstepdat[m] for m in range(2, len(tstepdat), 3)]
 
                     centroid = [sum(dat_x)/len(dat_x), sum(dat_y)/len(dat_y), sum(dat_z)/len(dat_z)]
+
+                    label = hard_exo_joint_by_parent(source, tstep, "Thigh")
+                    dist = pythag(centroid, label)
+
+                    centroid[0] += xnoise
+                    centroid[1] += ynoise
+                    centroid[2] += znoise
+
+                    label[0] += xnoise
+                    label[1] += ynoise
+                    label[2] += znoise
+
+                    centroid = [j/500 for j in centroid]  # Scale data down
+                    label = [j/500 for j in label]  # Scale label down too
+                    dist /= 500
 
                     if addl_noise:
                         # Translate centroid so that label is at origin
@@ -324,6 +321,6 @@ if __name__ == "__main__":
 
     exo_test = ["./TestSources/" + n for n in os.listdir("./TestSources")]
 
-    simple_seq_knee_hard_flat_norm_centroid(5, "simple_knee_seq_hard_len5_flat_norm_centroid_addl.csv", exo_sources, True)
-    simple_seq_knee_hard_flat_norm_centroid(5, "simple_knee_seq_hard_len5_flat_norm_centroid_addl-val.csv", exo_val, True)
-    simple_seq_knee_hard_flat_norm_centroid(5, "simple_knee_seq_hard_len5_flat_norm_centroid_addl-test.csv", exo_test, True)
+    simple_seq_knee_hard_flat_norm_centroid(10, "simple_knee_seq_hard_len10_flat_norm_centroid.csv", exo_sources)
+    simple_seq_knee_hard_flat_norm_centroid(10, "simple_knee_seq_hard_len10_flat_norm_centroid-val.csv", exo_val)
+    simple_seq_knee_hard_flat_norm_centroid(10, "simple_knee_seq_hard_len10_flat_norm_centroid-test.csv", exo_test)

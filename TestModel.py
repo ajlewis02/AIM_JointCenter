@@ -75,9 +75,9 @@ def simple_loss(filename, seq_len):
     dists = []
     for line in f:
         lineparsed = line.split("\n")[0].split(",")
-        label = list(map(float, lineparsed[seq_len*12:(seq_len*12)+3]))
-        dat = list(map(float, lineparsed[:seq_len*12]))
-        dist = float(lineparsed[(seq_len*12)+3])
+        label = list(map(float, lineparsed[seq_len*3:(seq_len*3)+3]))
+        dat = list(map(float, lineparsed[:seq_len*3]))
+        dist = float(lineparsed[(seq_len*3)+3])
         guess = model.predict([dat])
         losses.append(BuildModel.pythag_loss(np.array([label]), np.array(guess)).numpy()[0])
         dists.append(dist)
@@ -248,15 +248,23 @@ def vis_data(seq_len, filename):
         guess_y.append(pos[i-seq_len][1])
         guess_z.append(pos[i-seq_len][2])
 
-    _fig = plt.figure()
-    _ax = _fig.add_subplot(111, projection='3d')
-    _ax.set_autoscale_on(False)
-
-    ani = animation.FuncAnimation(_fig,
-                                  _animate, len(source.get_marker("knee_top")),
-                                  fargs=(_ax, [body_x, body_y, body_z], [joint_x, joint_y, joint_z], [guess_x, guess_y, guess_z]),
-                                  interval=100 / 10)
+    plt.plot(guess_x, label="prediction")
+    plt.plot(joint_x, label="joint")
+    plt.legend()
+    plt.xlabel("Time")
+    plt.ylabel("Global Position")
+    plt.title("Global X Position over time (mm)")
     plt.show()
+
+    # _fig = plt.figure()
+    # _ax = _fig.add_subplot(111, projection='3d')
+    # _ax.set_autoscale_on(False)
+    #
+    # ani = animation.FuncAnimation(_fig,
+    #                               _animate, len(source.get_marker("knee_top")),
+    #                               fargs=(_ax, [body_x, body_y, body_z], [joint_x, joint_y, joint_z], [guess_x, guess_y, guess_z]),
+    #                               interval=100 / 10)
+    # plt.show()
 
 
 def _animate(frame, _ax, body, joint, guess=None):
@@ -275,22 +283,22 @@ if __name__ == '__main__':
     physical_devices = tf.config.list_physical_devices('GPU')
     for device in physical_devices:
         tf.config.experimental.set_memory_growth(device, True)
-    model_name = "flat_len5_addl_norm_gen2"
+    model_name = "flat_len10_norm_centroid_gen1"
 
     custom_objects = {"pythag_loss_no_norm":BuildModel.pythag_loss_no_norm}
 
     with tf.keras.utils.custom_object_scope(custom_objects):
         model = tf.keras.models.load_model(model_name)
 
-    val = simple_loss("simple_knee_seq_hard_len5_flat_norm_addl-val", 5)
+    val = simple_loss("simple_knee_seq_hard_len10_flat_norm_centroid-val", 10)
     print("Validation")
-    train = simple_loss("simple_knee_seq_hard_len5_flat_norm_addl", 5)
+    train = simple_loss("simple_knee_seq_hard_len10_flat_norm_centroid", 10)
     print("Training")
-    test = simple_loss("simple_knee_seq_hard_len5_flat_norm_addl-test", 5)
+    test = simple_loss("simple_knee_seq_hard_len10_flat_norm_centroid-test", 10)
     print("Test1")
-    test2 = simple_loss("simple_knee_seq_hard_len5_flat_norm-test", 5)
+    # test2 = simple_loss("simple_knee_seq_hard_len5_flat_norm-test", 5)
 
-    plt.boxplot([val, train, test, test2], labels=["Validation Data", "Training Data", "Testing Data", "Testing Data2"], showfliers=False)
+    plt.boxplot([val, train, test], labels=["Validation Data", "Training Data", "Testing Data"], showfliers=True)
     plt.ylabel("Relative Error")
     plt.show()
 
