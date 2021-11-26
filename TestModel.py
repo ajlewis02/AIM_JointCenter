@@ -73,26 +73,31 @@ def simple_loss(filename, seq_len):
 
     losses = []
     dists = []
+    axis = 0  # 0:X, 1:Y, 2:Z
+    guess_axes = []
+    label_axes = []
     for line in f:
         lineparsed = line.split("\n")[0].split(",")
         label = list(map(float, lineparsed[seq_len*3:(seq_len*3)+3]))
         dat = list(map(float, lineparsed[:seq_len*3]))
-        dist = float(lineparsed[(seq_len*3)+3])
+        # dist = float(lineparsed[(seq_len*3)+3])
         guess = model.predict([dat])
-        losses.append(BuildModel.pythag_loss(np.array([label]), np.array(guess)).numpy()[0])
-        dists.append(dist)
+        guess_axes.append(guess[0][axis])
+        label_axes.append(label[axis])
+        # losses.append(BuildModel.pythag_loss(np.array([label]), np.array(guess)).numpy()[0])
+        # dists.append(dist)
     f.close()
     # print(sum(losses)/len(losses))
     # print(max(losses))
     # print(min(losses))
     # print(len(losses))
     # print()
-    distlosses = [losses[n]/dists[n] for n in range(len(losses))]
+    # distlosses = [losses[n]/dists[n] for n in range(len(losses))]
     # print(sum(distlosses)/len(distlosses))
     # print(max(distlosses))
     # print(min(distlosses))
     # print(len(distlosses))
-    return distlosses
+    return guess_axes, label_axes
 
 
 def simple_loss_from_raw(filename, seq_len):
@@ -191,17 +196,24 @@ def vis_data(seq_len, filename):
             tstep = i + n
             tstepdat = LoadData.child_by_parent(source, tstep, "Thigh", "Shank")  # Raw positional data
 
+            # Find the centroid
+            dat_x = [tstepdat[m] for m in range(0, len(tstepdat), 3)]
+            dat_y = [tstepdat[m] for m in range(1, len(tstepdat), 3)]
+            dat_z = [tstepdat[m] for m in range(2, len(tstepdat), 3)]
+
+            centroid = [sum(dat_x)/len(dat_x), sum(dat_y)/len(dat_y), sum(dat_z)/len(dat_z)]
+
             label = LoadData.hard_exo_joint_by_parent(source, tstep, "Thigh")
-            dist = LoadData.shortest_pythag(tstepdat, label)
+            dist = LoadData.pythag(centroid, label)
 
-            tstepdat = [j/500 for j in tstepdat]  # Scale data down
-            label = [j/500 for j in label]  # Scale label down too
-            dist /= 500
+            centroid = [j/100 for j in centroid]  # Scale data down
+            label = [j/100 for j in label]  # Scale label down too
+            dist /= 100
 
-            data = data + tstepdat
+            data = data + centroid
 
         guess = model.predict([data])[0]
-        guess = [n*500 for n in guess]
+        guess = [n*100 for n in guess]
         guess = local_to_global(guess, "Thigh", i+seq_len-1, source)
         label = LoadData.flatten_point(source.get_marker("knee_top")[i])
         pos.append(guess)
@@ -248,12 +260,34 @@ def vis_data(seq_len, filename):
         guess_y.append(pos[i-seq_len][1])
         guess_z.append(pos[i-seq_len][2])
 
-    plt.plot(guess_x, label="prediction")
-    plt.plot(joint_x, label="joint")
+    plt.plot(guess_x[seq_len:], label="prediction")
+    plt.plot(joint_x[seq_len:], label="joint")
     plt.legend()
+    # plt.xlim([11, 1000])
+    plt.ylim([min(guess_x[seq_len:] + joint_x[seq_len:]), max(guess_x[seq_len:] + joint_x[seq_len:])])
     plt.xlabel("Time")
     plt.ylabel("Global Position")
     plt.title("Global X Position over time (mm)")
+    plt.show()
+
+    plt.plot(guess_y[seq_len:], label="prediction")
+    plt.plot(joint_y[seq_len:], label="joint")
+    plt.legend()
+    # plt.xlim([11, 1000])
+    plt.ylim([min(guess_y[seq_len:] + joint_y[seq_len:]), max(guess_y[seq_len:] + joint_y[seq_len:])])
+    plt.xlabel("Time")
+    plt.ylabel("Global Position")
+    plt.title("Global Y Position over time (mm)")
+    plt.show()
+
+    plt.plot(guess_z[seq_len:], label="prediction")
+    plt.plot(joint_z[seq_len:], label="joint")
+    plt.legend()
+    # plt.xlim([11, 1000])
+    plt.ylim([min(guess_z[seq_len:] + joint_z[seq_len:]), max(guess_z[seq_len:] + joint_z[seq_len:])])
+    plt.xlabel("Time")
+    plt.ylabel("Global Position")
+    plt.title("Global Z Position over time (mm)")
     plt.show()
 
     # _fig = plt.figure()
@@ -283,24 +317,36 @@ if __name__ == '__main__':
     physical_devices = tf.config.list_physical_devices('GPU')
     for device in physical_devices:
         tf.config.experimental.set_memory_growth(device, True)
-    model_name = "flat_len10_norm_centroid_gen1"
+    model_name = "flat_len10_norm_centroid_upscale_gen1"
 
     custom_objects = {"pythag_loss_no_norm":BuildModel.pythag_loss_no_norm}
 
     with tf.keras.utils.custom_object_scope(custom_objects):
         model = tf.keras.models.load_model(model_name)
 
-    val = simple_loss("simple_knee_seq_hard_len10_flat_norm_centroid-val", 10)
-    print("Validation")
-    train = simple_loss("simple_knee_seq_hard_len10_flat_norm_centroid", 10)
-    print("Training")
-    test = simple_loss("simple_knee_seq_hard_len10_flat_norm_centroid-test", 10)
-    print("Test1")
+    # val_guess, val_label = simple_loss("simple_knee_seq_hard_len10_flat_norm_centroid-val", 10)
+    # print("Validation")
+    # plt.plot(val_guess, label="Guess")
+    # plt.plot(val_label, label="Label")
+    # plt.title("Model Guess vs. Label (one axis, relative reference frame)")
+    # plt.xlabel("Time")
+    # plt.ylabel("X Value")
+    # plt.legend()
+    # n = 1
+    # plt.xlim([100*n, 100*(n+1)])
+    # plt.show()
+
+    vis_data(10, "Sources/bent_diagonal00.csv")
+
+    # train = simple_loss("simple_knee_seq_hard_len10_flat_norm_centroid", 10)
+    # print("Training")
+    # test = simple_loss("simple_knee_seq_hard_len10_flat_norm_centroid-test", 10)
+    # print("Test1")
     # test2 = simple_loss("simple_knee_seq_hard_len5_flat_norm-test", 5)
 
-    plt.boxplot([val, train, test], labels=["Validation Data", "Training Data", "Testing Data"], showfliers=True)
-    plt.ylabel("Relative Error")
-    plt.show()
+    # plt.boxplot([val, train, test], labels=["Validation Data", "Training Data", "Testing Data"], showfliers=True)
+    # plt.ylabel("Relative Error")
+    # plt.show()
 
     # exo_sources = ["./Sources/" + n for n in os.listdir("./Sources")]
     #
