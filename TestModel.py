@@ -101,14 +101,13 @@ def simple_loss(filename, seq_len):
 
 
 def simple_loss_from_raw(filename, seq_len):
-    f = open(filename)
-
     v = Vicon(filename)
     source = v.get_markers()
     source.smart_sort()
     source.auto_make_transform(exoFrames)
     pos = []
     distlosses = []
+    dat_total_movement = []
     for i in range(0, len(source.get_marker("knee_top")) - seq_len, 1):
         data = []
         label = []
@@ -117,23 +116,31 @@ def simple_loss_from_raw(filename, seq_len):
             tstep = i + n
             tstepdat = LoadData.child_by_parent(source, tstep, "Thigh", "Shank")  # Raw positional data
 
+            # Find the centroid
+            dat_x = [tstepdat[m] for m in range(0, len(tstepdat), 3)]
+            dat_y = [tstepdat[m] for m in range(1, len(tstepdat), 3)]
+            dat_z = [tstepdat[m] for m in range(2, len(tstepdat), 3)]
+
+            centroid = [sum(dat_x)/len(dat_x), sum(dat_y)/len(dat_y), sum(dat_z)/len(dat_z)]
+
             label = LoadData.hard_exo_joint_by_parent(source, tstep, "Thigh")
             dist = LoadData.shortest_pythag(tstepdat, label)
 
-            tstepdat = [j/500 for j in tstepdat]  # Scale data down
+            centroid = [j/500 for j in centroid]  # Scale data down
             label = [j/500 for j in label]  # Scale label down too
             dist /= 500
 
-            data = data + tstepdat
+            data = data + centroid
 
         guess = model.predict([data])[0]
-        guess = [n*500 for n in guess]
-        guess = local_to_global(guess, "Thigh", i+seq_len-1, source)
-        dist *= 500
-        label = LoadData.flatten_point(source.get_marker("knee_top")[i])
+        # guess = [n*500 for n in guess]
+        # guess = local_to_global(guess, "Thigh", i+seq_len-1, source)
+        # dist *= 500
+        # label = LoadData.flatten_point(source.get_marker("knee_top")[i])
         pos.append(guess)
         distlosses.append(BuildModel.pythag_loss(np.array([label]), np.array(guess)).numpy()[0]/dist)
-    return distlosses
+        dat_total_movement.append(total_movement([n*500 for n in data]))
+    return distlosses, dat_total_movement
 
 
 def plot_timestep(filename, timestep=-1):
@@ -167,6 +174,18 @@ def plot_timestep(filename, timestep=-1):
 def local_to_global(point, frame, timestep, source):
     f = source.get_frame(frame)[timestep]
     return LoadData.flatten_point(Markers.local_point_to_global(f, Core.Point.Point(float(point[0]), float(point[1]), float(point[2]))))
+
+def global_to_local(point, frame, timestep, source):
+    f = source.get_frame(frame)[timestep]
+    return LoadData.flatten_point(Markers.global_point_to_frame(f, Core.Point.Point(float(point[0]), float(point[1]), float(point[2]))))
+
+
+def total_movement(point_sequence):
+    points = [[point_sequence[n], point_sequence[n+1], point_sequence[n+2]] for n in range(0, len(point_sequence)-2, 3)]
+    total = 0
+    for i in range(len(points)-1):
+        total += abs(BuildModel.pythag_loss(np.array([points[i]]), np.array([points[i+1]])).numpy()[0])
+    return total
 
 
 def global_body(source, timestep, body):
@@ -206,15 +225,16 @@ def vis_data(seq_len, filename):
             label = LoadData.hard_exo_joint_by_parent(source, tstep, "Thigh")
             dist = LoadData.pythag(centroid, label)
 
-            centroid = [j/100 for j in centroid]  # Scale data down
-            label = [j/100 for j in label]  # Scale label down too
-            dist /= 100
+            centroid = [j/500 for j in centroid]  # Scale data down
+            label = [j/500 for j in label]  # Scale label down too
+            dist /= 500
 
             data = data + centroid
 
         guess = model.predict([data])[0]
-        guess = [n*100 for n in guess]
-        guess = local_to_global(guess, "Thigh", i+seq_len-1, source)
+        guess = [n*500 for n in guess]
+        # label = [n*500 for n in label]
+        # guess = local_to_global(guess, "Thigh", i+seq_len-1, source)
         label = LoadData.flatten_point(source.get_marker("knee_top")[i])
         pos.append(guess)
         losses.append(BuildModel.pythag_loss(np.array([label]), np.array(guess)).numpy()[0]/dist)
@@ -235,6 +255,7 @@ def vis_data(seq_len, filename):
         thigh = global_body(source, i, "Thigh")
         shank = global_body(source, i, "Shank")
         joint = LoadData.flatten_point(source.get_marker("knee_top")[i])
+        joint = global_to_local(joint, "Thigh", i, source)
 
         body_x.append(thigh[0] + shank[0])
         body_y.append(thigh[1] + shank[1])
@@ -247,6 +268,7 @@ def vis_data(seq_len, filename):
         thigh = global_body(source, i, "Thigh")
         shank = global_body(source, i, "Shank")
         joint = LoadData.flatten_point(source.get_marker("knee_top")[i])
+        joint = global_to_local(joint, "Thigh", i, source)
 
         body_x.append(thigh[0] + shank[0])
         body_y.append(thigh[1] + shank[1])
@@ -260,34 +282,49 @@ def vis_data(seq_len, filename):
         guess_y.append(pos[i-seq_len][1])
         guess_z.append(pos[i-seq_len][2])
 
+    data_all_time = [LoadData.child_by_parent(source, tstep, "Thigh", "Shank") for tstep in range(len(source.get_marker("knee_top")))]
+    centroids = []
+
+    for tstepdat in data_all_time:
+        dat_x = [tstepdat[m] for m in range(0, len(tstepdat), 3)]
+        dat_y = [tstepdat[m] for m in range(1, len(tstepdat), 3)]
+        dat_z = [tstepdat[m] for m in range(2, len(tstepdat), 3)]
+
+        centroids.append([sum(dat_x)/len(dat_x), sum(dat_y)/len(dat_y), sum(dat_z)/len(dat_z)])
+
+    centroids_x, centroids_y, centroids_z = [[n[m] for n in centroids] for m in range(3)]
+
     plt.plot(guess_x[seq_len:], label="prediction")
+    plt.plot(centroids_x[seq_len:], label="centroid")
     plt.plot(joint_x[seq_len:], label="joint")
     plt.legend()
     # plt.xlim([11, 1000])
-    plt.ylim([min(guess_x[seq_len:] + joint_x[seq_len:]), max(guess_x[seq_len:] + joint_x[seq_len:])])
+    plt.ylim([min(guess_x[seq_len:] + joint_x[seq_len:]+centroids_x[seq_len:]), max(guess_x[seq_len:] + joint_x[seq_len:]+centroids_x[seq_len:])])
     plt.xlabel("Time")
-    plt.ylabel("Global Position")
-    plt.title("Global X Position over time (mm)")
+    plt.ylabel("Local Position")
+    plt.title("Local X Position over time (mm)")
     plt.show()
 
     plt.plot(guess_y[seq_len:], label="prediction")
+    plt.plot(centroids_y[seq_len:], label="centroid")
     plt.plot(joint_y[seq_len:], label="joint")
     plt.legend()
     # plt.xlim([11, 1000])
-    plt.ylim([min(guess_y[seq_len:] + joint_y[seq_len:]), max(guess_y[seq_len:] + joint_y[seq_len:])])
+    plt.ylim([min(guess_y[seq_len:] + joint_y[seq_len:]+centroids_y[seq_len:]), max(guess_y[seq_len:] + joint_y[seq_len:]+centroids_y[seq_len:])])
     plt.xlabel("Time")
-    plt.ylabel("Global Position")
-    plt.title("Global Y Position over time (mm)")
+    plt.ylabel("Local Position")
+    plt.title("Local Y Position over time (mm)")
     plt.show()
 
     plt.plot(guess_z[seq_len:], label="prediction")
+    plt.plot(centroids_z[seq_len:], label="centroid")
     plt.plot(joint_z[seq_len:], label="joint")
     plt.legend()
     # plt.xlim([11, 1000])
-    plt.ylim([min(guess_z[seq_len:] + joint_z[seq_len:]), max(guess_z[seq_len:] + joint_z[seq_len:])])
+    plt.ylim([min(guess_z[seq_len:] + joint_z[seq_len:]+centroids_z[seq_len:]), max(guess_z[seq_len:] + joint_z[seq_len:]+centroids_z[seq_len:])])
     plt.xlabel("Time")
-    plt.ylabel("Global Position")
-    plt.title("Global Z Position over time (mm)")
+    plt.ylabel("Local Position")
+    plt.title("Local Z Position over time (mm)")
     plt.show()
 
     # _fig = plt.figure()
@@ -295,7 +332,7 @@ def vis_data(seq_len, filename):
     # _ax.set_autoscale_on(False)
     #
     # ani = animation.FuncAnimation(_fig,
-    #                               _animate, len(source.get_marker("knee_top")),
+    #                               _animate, len(source.get_marker("knee_top"))-1,
     #                               fargs=(_ax, [body_x, body_y, body_z], [joint_x, joint_y, joint_z], [guess_x, guess_y, guess_z]),
     #                               interval=100 / 10)
     # plt.show()
@@ -317,7 +354,7 @@ if __name__ == '__main__':
     physical_devices = tf.config.list_physical_devices('GPU')
     for device in physical_devices:
         tf.config.experimental.set_memory_growth(device, True)
-    model_name = "flat_len10_norm_centroid_upscale_gen1"
+    model_name = "flat_len50_norm_centroid_gen1"
 
     custom_objects = {"pythag_loss_no_norm":BuildModel.pythag_loss_no_norm}
 
@@ -336,7 +373,14 @@ if __name__ == '__main__':
     # plt.xlim([100*n, 100*(n+1)])
     # plt.show()
 
-    vis_data(10, "Sources/bent_diagonal00.csv")
+    # distlosses, dat_movement = simple_loss_from_raw("Sources/bent_diagonal00.csv", 10)
+    # plt.scatter(dat_movement, distlosses)
+    # plt.xlabel("Total movement of centroid across sequence")
+    # plt.ylabel("Relative error")
+    # plt.title("Error by Total Movement")
+    # plt.show()
+
+    vis_data(50, "Sources/bent_diagonal00.csv")
 
     # train = simple_loss("simple_knee_seq_hard_len10_flat_norm_centroid", 10)
     # print("Training")

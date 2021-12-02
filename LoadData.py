@@ -283,9 +283,9 @@ def simple_seq_knee_hard_flat_norm_centroid(seq_len, filename, datused, addl_noi
                     label[1] += ynoise
                     label[2] += znoise
 
-                    centroid = [j/100 for j in centroid]  # Scale data down
-                    label = [j/100 for j in label]  # Scale label down too
-                    dist /= 100
+                    centroid = [j/500 for j in centroid]  # Scale data down
+                    label = [j/500 for j in label]  # Scale label down too
+                    dist /= 500
 
                     if addl_noise:
                         # Translate centroid so that label is at origin
@@ -321,6 +321,6 @@ if __name__ == "__main__":
 
     exo_test = ["./TestSources/" + n for n in os.listdir("./TestSources")]
 
-    simple_seq_knee_hard_flat_norm_centroid(10, "simple_knee_seq_hard_len10_flat_norm_centroid_upscale.csv", exo_sources)
-    simple_seq_knee_hard_flat_norm_centroid(10, "simple_knee_seq_hard_len10_flat_norm_centroid_upscale-val.csv", exo_val)
-    simple_seq_knee_hard_flat_norm_centroid(10, "simple_knee_seq_hard_len10_flat_norm_centroid_upscale-test.csv", exo_test)
+    simple_seq_knee_hard_flat_norm_centroid(50, "simple_knee_seq_hard_len50_flat_norm_centroid.csv", exo_sources)
+    simple_seq_knee_hard_flat_norm_centroid(50, "simple_knee_seq_hard_len50_flat_norm_centroid-val.csv", exo_val)
+    simple_seq_knee_hard_flat_norm_centroid(50, "simple_knee_seq_hard_len50_flat_norm_centroid-test.csv", exo_test)
