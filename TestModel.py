@@ -132,14 +132,15 @@ def simple_loss_from_raw(filename, seq_len):
 
             data = data + centroid
 
-        guess = model.predict([data])[0]
-        # guess = [n*500 for n in guess]
-        # guess = local_to_global(guess, "Thigh", i+seq_len-1, source)
-        # dist *= 500
-        # label = LoadData.flatten_point(source.get_marker("knee_top")[i])
-        pos.append(guess)
-        distlosses.append(BuildModel.pythag_loss(np.array([label]), np.array(guess)).numpy()[0]/dist)
-        dat_total_movement.append(total_movement([n*500 for n in data]))
+        if total_movement([n*500 for n in data]) > 40:
+            guess = model.predict([data])[0]
+            # guess = [n*500 for n in guess]
+            # guess = local_to_global(guess, "Thigh", i+seq_len-1, source)
+            # dist *= 500
+            # label = LoadData.flatten_point(source.get_marker("knee_top")[i])
+            pos.append(guess)
+            distlosses.append(BuildModel.pythag_loss(np.array([label]), np.array(guess)).numpy()[0]/dist)
+            dat_total_movement.append(total_movement([n*500 for n in data]))
     return distlosses, dat_total_movement
 
 
@@ -350,6 +351,63 @@ def _animate(frame, _ax, body, joint, guess=None):
     _ax.scatter(guess[0][frame], guess[1][frame], guess[2][frame], c="g", marker="o")
 
 
+def from_centroids(seq_len):
+    f = open("./dict.csv")
+    x = f.readline().split(",")[1:]
+    y = f.readline().split(",")[1:]
+    z = f.readline().split(",")[1:]
+    f.close()
+
+    x, y, z = [[float(m) for m in n] for n in [x, y, z]]
+
+    dat = []
+    for i in range(len(x)-seq_len):
+        seq = []
+        for j in range(seq_len):
+            seq = seq + [float(z[i+j])/500, float(y[i+j])/500, float(x[i+j])/500]
+        dat.append(seq)
+
+    out = []
+    for seq in dat:
+        guess = model.predict([seq])[0]
+        guess = [n*500 for n in guess]
+        out.append(guess)
+
+    out_x = [n[2] for n in out]
+    out_y = [n[1] for n in out]
+    out_z = [n[0] for n in out]
+
+    plt.plot(x[seq_len:], label="Centroid")
+    plt.plot(out_x, label="Joint Prediction")
+    plt.ylim([min(x[seq_len:] + out_x), max(x[seq_len:] + out_x)])
+    plt.legend()
+    plt.xlabel("Time")
+    plt.ylabel("Position (Relative Frame)")
+    plt.title("X Position of centroid and output")
+    plt.xlim([0, 1000])
+    plt.show()
+
+    plt.plot(y[seq_len:], label="Centroid")
+    plt.plot(out_y, label="Joint Prediction")
+    plt.ylim([min(y[seq_len:] + out_y), max(y[seq_len:] + out_y)])
+    plt.legend()
+    plt.xlabel("Time")
+    plt.ylabel("Position (Relative Frame)")
+    plt.title("Y Position of centroid and output")
+    plt.xlim([0, 1000])
+    plt.show()
+
+    plt.plot(z[seq_len:], label="Centroid")
+    plt.plot(out_z, label="Joint Prediction")
+    plt.ylim([min(z[seq_len:] + out_z), max(z[seq_len:] + out_z)])
+    plt.legend()
+    plt.xlabel("Time")
+    plt.ylabel("Position (Relative Frame)")
+    plt.title("Z Position of centroid and output")
+    plt.xlim([0, 1000])
+    plt.show()
+
+
 if __name__ == '__main__':
     physical_devices = tf.config.list_physical_devices('GPU')
     for device in physical_devices:
@@ -373,14 +431,14 @@ if __name__ == '__main__':
     # plt.xlim([100*n, 100*(n+1)])
     # plt.show()
 
-    # distlosses, dat_movement = simple_loss_from_raw("Sources/bent_diagonal00.csv", 10)
-    # plt.scatter(dat_movement, distlosses)
-    # plt.xlabel("Total movement of centroid across sequence")
-    # plt.ylabel("Relative error")
-    # plt.title("Error by Total Movement")
-    # plt.show()
+    distlosses, dat_movement = simple_loss_from_raw("TestSources/bent_hip_pos_yplane01.csv", 50)
+    plt.scatter(dat_movement, distlosses)
+    plt.xlabel("Total movement of centroid across sequence")
+    plt.ylabel("Relative error")
+    plt.title("Error by Total Movement (excluding total movement < 40)")
+    plt.show()
 
-    vis_data(50, "Sources/bent_diagonal00.csv")
+    # from_centroids(50)
 
     # train = simple_loss("simple_knee_seq_hard_len10_flat_norm_centroid", 10)
     # print("Training")
