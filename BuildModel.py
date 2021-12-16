@@ -53,7 +53,7 @@ if __name__ == '__main__':
     ], model_name)
 
     model.compile(optimizer=tf.optimizers.Adam(0.001), loss=pythag_loss_no_norm)
-    history = model.fit(train_ds_tf, epochs=200, verbose=0, validation_data=val_ds_tf)
+    history = model.fit(train_ds_tf, epochs=400, verbose=0, validation_data=val_ds_tf)
 
     hist = pd.DataFrame(history.history)
     hist['epoch'] = history.epoch
