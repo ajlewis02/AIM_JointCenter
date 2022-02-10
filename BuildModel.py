@@ -23,7 +23,7 @@ if __name__ == '__main__':
     for device in physical_devices:
         tf.config.experimental.set_memory_growth(device, True)
     seq_len = 50
-    filename = "simple_knee_seq_hard_len50_flat_norm_centroid"
+    filename = "generated_simple_seq_flat_norm_len50"
 
     train_ds_all = pd.read_csv(filename+".csv")
     val_ds_all = pd.read_csv(filename+"-val.csv")
@@ -41,14 +41,14 @@ if __name__ == '__main__':
     # train_ds_labels = pd.read_csv(filename+"-labs.csv")
     # val_ds_labels = pd.read_csv(filename+"-val-labs.csv")
 
-    model_name = "flat_len50_norm_centroid_gen1"
+    model_name = "flat_gen_len50_norm_centroid_gen1"
 
     model = tf.keras.models.Sequential([
         tf.keras.layers.Dense(3 * seq_len, activation=tf.keras.layers.LeakyReLU(alpha=0.01)),
         tf.keras.layers.Dense(3 * seq_len, activation=tf.keras.layers.LeakyReLU(alpha=0.01)),
-        tf.keras.layers.Dense(3 * seq_len, activation=tf.keras.layers.LeakyReLU(alpha=0.01)),
-        tf.keras.layers.Dense(3 * seq_len, activation=tf.keras.layers.LeakyReLU(alpha=0.01)),
-        tf.keras.layers.Dense(3 * seq_len, activation=tf.keras.layers.LeakyReLU(alpha=0.01)),
+        # tf.keras.layers.Dense(3 * seq_len, activation=tf.keras.layers.LeakyReLU(alpha=0.01)),
+        # tf.keras.layers.Dense(3 * seq_len, activation=tf.keras.layers.LeakyReLU(alpha=0.01)),
+        # tf.keras.layers.Dense(3 * seq_len, activation=tf.keras.layers.LeakyReLU(alpha=0.01)),
         tf.keras.layers.Dense(3)
     ], model_name)
 
