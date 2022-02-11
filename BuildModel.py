@@ -46,14 +46,14 @@ if __name__ == '__main__':
     model = tf.keras.models.Sequential([
         tf.keras.layers.Dense(3 * seq_len, activation=tf.keras.layers.LeakyReLU(alpha=0.01)),
         tf.keras.layers.Dense(3 * seq_len, activation=tf.keras.layers.LeakyReLU(alpha=0.01)),
-        # tf.keras.layers.Dense(3 * seq_len, activation=tf.keras.layers.LeakyReLU(alpha=0.01)),
-        # tf.keras.layers.Dense(3 * seq_len, activation=tf.keras.layers.LeakyReLU(alpha=0.01)),
-        # tf.keras.layers.Dense(3 * seq_len, activation=tf.keras.layers.LeakyReLU(alpha=0.01)),
+        tf.keras.layers.Dense(3 * seq_len, activation=tf.keras.layers.LeakyReLU(alpha=0.01)),
+        tf.keras.layers.Dense(3 * seq_len, activation=tf.keras.layers.LeakyReLU(alpha=0.01)),
+        tf.keras.layers.Dense(3 * seq_len, activation=tf.keras.layers.LeakyReLU(alpha=0.01)),
         tf.keras.layers.Dense(3)
     ], model_name)
 
     model.compile(optimizer=tf.optimizers.Adam(0.001), loss=pythag_loss_no_norm)
-    history = model.fit(train_ds_tf, epochs=400, verbose=0, validation_data=val_ds_tf)
+    history = model.fit(train_ds_tf, epochs=1200, verbose=0, validation_data=val_ds_tf)
 
     hist = pd.DataFrame(history.history)
     hist['epoch'] = history.epoch
@@ -65,6 +65,7 @@ if __name__ == '__main__':
     plt.ylabel('Error')
     plt.legend()
     plt.grid(True)
+    plt.ylim([0, 5])
 
     print(history.history["loss"][len(history.history["loss"])-1])
     print(history.history['val_loss'][len(history.history['val_loss'])-1])

@@ -5,9 +5,9 @@ from scipy.spatial.transform import Rotation as R
 
 def randomOnSphere(dist=1, center_x=0, center_y=0, center_z=0):
     # Generates a random point on the surface of a 3D sphere centered at (center_x, center_y, center_z) with radius dist
-    x = center_x + dist
-    y = center_y
-    z = center_z
+    x = dist
+    y = 0
+    z = 0
 
     maxrot = math.pi * 2
     rot_x = np.random.uniform(0, maxrot)
@@ -15,7 +15,7 @@ def randomOnSphere(dist=1, center_x=0, center_y=0, center_z=0):
     rot_z = np.random.uniform(0, maxrot)
 
     r = R.from_rotvec([rot_x, rot_y, rot_z])
-    return r.apply([[x, y, z]])[0]
+    return r.apply([[x, y, z]])[0] + np.array([center_x, center_y, center_z])
 
 
 def genSimpleSeq(seq_len):  # Generates a sequence of seq_len points randomly rotated around a random point
