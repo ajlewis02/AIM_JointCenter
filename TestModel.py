@@ -132,7 +132,7 @@ def simple_loss_from_raw(filename, seq_len):
 
             data = data + centroid
 
-        if total_movement([n*500 for n in data]) > 40:
+        if total_movement([n*500 for n in data]) > 0:
             guess = model.predict([data])[0]
             # guess = [n*500 for n in guess]
             # guess = local_to_global(guess, "Thigh", i+seq_len-1, source)
@@ -431,11 +431,11 @@ if __name__ == '__main__':
     # plt.xlim([100*n, 100*(n+1)])
     # plt.show()
 
-    distlosses, dat_movement = simple_loss_from_raw("TestSources/bent_hip_pos_yplane01.csv", 50)
+    distlosses, dat_movement = simple_loss_from_raw("Sources/bent_diagonal00.csv", 50)
     plt.scatter(dat_movement, distlosses)
     plt.xlabel("Total movement of centroid across sequence")
     plt.ylabel("Relative error")
-    plt.title("Error by Total Movement (excluding total movement < 40)")
+    plt.title("Error by Total Movement, Length 50 Centroid Model")
     plt.show()
 
     # from_centroids(50)
