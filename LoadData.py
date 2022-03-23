@@ -321,6 +321,6 @@ if __name__ == "__main__":
 
     exo_test = ["./TestSources/" + n for n in os.listdir("./TestSources")]
 
-    simple_seq_knee_hard_flat_norm_centroid(50, "simple_knee_seq_hard_len50_flat_norm_centroid.csv", exo_sources)
-    simple_seq_knee_hard_flat_norm_centroid(50, "simple_knee_seq_hard_len50_flat_norm_centroid-val.csv", exo_val)
-    simple_seq_knee_hard_flat_norm_centroid(50, "simple_knee_seq_hard_len50_flat_norm_centroid-test.csv", exo_test)
+    simple_seq_knee_hard_flat_norm_centroid(5, "simple_knee_seq_hard_len5_flat_norm_centroid.csv", exo_sources)
+    simple_seq_knee_hard_flat_norm_centroid(5, "simple_knee_seq_hard_len5_flat_norm_centroid-val.csv", exo_val)
+    simple_seq_knee_hard_flat_norm_centroid(5, "simple_knee_seq_hard_len5_flat_norm_centroid-test.csv", exo_test)

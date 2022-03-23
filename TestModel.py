@@ -412,7 +412,7 @@ if __name__ == '__main__':
     physical_devices = tf.config.list_physical_devices('GPU')
     for device in physical_devices:
         tf.config.experimental.set_memory_growth(device, True)
-    model_name = "flat_len50_norm_centroid_gen1"
+    model_name = "flat_len5_norm_centroid_gen1"
 
     custom_objects = {"pythag_loss_no_norm":BuildModel.pythag_loss_no_norm}
 
@@ -431,11 +431,11 @@ if __name__ == '__main__':
     # plt.xlim([100*n, 100*(n+1)])
     # plt.show()
 
-    distlosses, dat_movement = simple_loss_from_raw("Sources/bent_diagonal00.csv", 50)
+    distlosses, dat_movement = simple_loss_from_raw("Sources/bent_diagonal00.csv", 5)
     plt.scatter(dat_movement, distlosses)
     plt.xlabel("Total movement of centroid across sequence")
     plt.ylabel("Relative error")
-    plt.title("Error by Total Movement, Length 50 Centroid Model")
+    plt.title("Error by Total Movement, Length 5 Centroid Model")
     plt.show()
 
     # from_centroids(50)
