@@ -80,24 +80,24 @@ def simple_loss(filename, seq_len):
         lineparsed = line.split("\n")[0].split(",")
         label = list(map(float, lineparsed[seq_len*3:(seq_len*3)+3]))
         dat = list(map(float, lineparsed[:seq_len*3]))
-        # dist = float(lineparsed[(seq_len*3)+3])
+        dist = float(lineparsed[(seq_len*3)+3])
         guess = model.predict([dat])
-        guess_axes.append(guess[0][axis])
-        label_axes.append(label[axis])
-        # losses.append(BuildModel.pythag_loss(np.array([label]), np.array(guess)).numpy()[0])
-        # dists.append(dist)
+        # guess_axes.append(guess[0][axis])
+        # label_axes.append(label[axis])
+        losses.append(BuildModel.pythag_loss(np.array([label]), np.array(guess)).numpy()[0])
+        dists.append(dist)
     f.close()
     # print(sum(losses)/len(losses))
     # print(max(losses))
     # print(min(losses))
     # print(len(losses))
     # print()
-    # distlosses = [losses[n]/dists[n] for n in range(len(losses))]
+    distlosses = [losses[n]/dists[n] for n in range(len(losses))]
     # print(sum(distlosses)/len(distlosses))
     # print(max(distlosses))
     # print(min(distlosses))
     # print(len(distlosses))
-    return guess_axes, label_axes
+    return distlosses
 
 
 def simple_loss_from_raw(filename, seq_len):
@@ -412,7 +412,7 @@ if __name__ == '__main__':
     physical_devices = tf.config.list_physical_devices('GPU')
     for device in physical_devices:
         tf.config.experimental.set_memory_growth(device, True)
-    model_name = "flat_len5_norm_centroid_gen1"
+    model_name = "flat_len10_norm_centroid_gen1"
 
     custom_objects = {"pythag_loss_no_norm":BuildModel.pythag_loss_no_norm}
 
@@ -431,24 +431,26 @@ if __name__ == '__main__':
     # plt.xlim([100*n, 100*(n+1)])
     # plt.show()
 
-    distlosses, dat_movement = simple_loss_from_raw("Sources/bent_diagonal00.csv", 5)
-    plt.scatter(dat_movement, distlosses)
-    plt.xlabel("Total movement of centroid across sequence")
-    plt.ylabel("Relative error")
-    plt.title("Error by Total Movement, Length 5 Centroid Model")
-    plt.show()
+    # distlosses, dat_movement = simple_loss_from_raw("Sources/bent_diagonal00.csv", 5)
+    # plt.scatter(dat_movement, distlosses)
+    # plt.xlabel("Total movement of centroid across sequence")
+    # plt.ylabel("Relative error")
+    # plt.title("Error by Total Movement, Length 5 Centroid Model")
+    # plt.show()
 
     # from_centroids(50)
 
-    # train = simple_loss("simple_knee_seq_hard_len10_flat_norm_centroid", 10)
-    # print("Training")
-    # test = simple_loss("simple_knee_seq_hard_len10_flat_norm_centroid-test", 10)
-    # print("Test1")
+    train = simple_loss("simple_knee_seq_hard_len10_flat_norm_centroid", 10)
+    print("Training")
+    test = simple_loss("simple_knee_seq_hard_len10_flat_norm_centroid-test", 10)
+    print("Test1")
+    val = simple_loss("simple_knee_seq_hard_len10_flat_norm_centroid-val", 10)
     # test2 = simple_loss("simple_knee_seq_hard_len5_flat_norm-test", 5)
 
-    # plt.boxplot([val, train, test], labels=["Validation Data", "Training Data", "Testing Data"], showfliers=True)
-    # plt.ylabel("Relative Error")
-    # plt.show()
+    plt.boxplot([val, train, test], labels=["Validation Data", "Training Data", "Testing Data"], showfliers=True)
+    plt.ylabel("Relative Error")
+    plt.title("Length 10 Centroid Model Performance")
+    plt.show()
 
     # exo_sources = ["./Sources/" + n for n in os.listdir("./Sources")]
     #
