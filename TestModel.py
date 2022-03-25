@@ -412,7 +412,7 @@ if __name__ == '__main__':
     physical_devices = tf.config.list_physical_devices('GPU')
     for device in physical_devices:
         tf.config.experimental.set_memory_growth(device, True)
-    model_name = "flat_len10_norm_centroid_gen1"
+    model_name = "flat_len50_norm_centroid_gen1"
 
     custom_objects = {"pythag_loss_no_norm":BuildModel.pythag_loss_no_norm}
 
@@ -440,16 +440,16 @@ if __name__ == '__main__':
 
     # from_centroids(50)
 
-    train = simple_loss("simple_knee_seq_hard_len10_flat_norm_centroid", 10)
+    train = simple_loss("simple_knee_seq_hard_len50_flat_norm_centroid", 50)
     print("Training")
-    test = simple_loss("simple_knee_seq_hard_len10_flat_norm_centroid-test", 10)
+    test = simple_loss("simple_knee_seq_hard_len50_flat_norm_centroid-test", 50)
     print("Test1")
-    val = simple_loss("simple_knee_seq_hard_len10_flat_norm_centroid-val", 10)
+    val = simple_loss("simple_knee_seq_hard_len50_flat_norm_centroid-val", 50)
     # test2 = simple_loss("simple_knee_seq_hard_len5_flat_norm-test", 5)
 
-    plt.boxplot([val, train, test], labels=["Validation Data", "Training Data", "Testing Data"], showfliers=True)
+    plt.boxplot([val, train, test], labels=["Validation Data", "Training Data", "Testing Data"], showfliers=False)
     plt.ylabel("Relative Error")
-    plt.title("Length 10 Centroid Model Performance")
+    plt.title("Length 50 Centroid Model Performance")
     plt.show()
 
     # exo_sources = ["./Sources/" + n for n in os.listdir("./Sources")]
